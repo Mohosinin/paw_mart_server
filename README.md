@@ -3,7 +3,7 @@
 PawMart is a community-driven platform where pet owners, breeders, and shops can list pets for adoption or sell pet-related products.
 
 ## Live Site
-[PawMart Live](https://pawmart-demo.web.app) (Replace with actual URL)
+[PawMart Live](https://paw-mart-client-ugad.vercel.app) (Replace with actual URL)
 
 ## Features
 - **Adoption & Sales**: Browse pets for adoption or buy pet food and accessories.
