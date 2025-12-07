@@ -12,11 +12,12 @@ app.use(cors({
         'http://localhost:5173',
         'http://localhost:5174',
         'https://paw-mart-client-beta.vercel.app',
-        'https://paw-mart-client-ugad.vercel.app',
-        'https://paw-mart-client-ugad-git-main-yourusername.vercel.app'
+        'https://paw-mart-client-i3xk2jmrh-mohosinins-projects.vercel.app',
+        
     ],
     credentials: true
 }));
+app.options('*', cors()); // Enable pre-flight for all routes
 app.use(express.json());
 
 const uri = process.env.DB_URI;
