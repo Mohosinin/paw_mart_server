@@ -21,15 +21,9 @@ app.use(express.json());
 
 // MongoDB Configuration
 const uri = process.env.DB_URI;
-const client = uri ? new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    }
-}) : null;
 
 // Database State
+let client = null;
 let db;
 let listingsCollection;
 let ordersCollection;
@@ -38,9 +32,20 @@ let dbConnectionPromise = null;
 
 // Connection Helper
 async function connectDB() {
+    // Lazy Initialize Client
     if (!client) {
-        throw new Error("DB_URI is undefined or client failed to initialize.");
+        if (!uri) {
+            throw new Error("DB_URI is undefined in environment variables.");
+        }
+        client = new MongoClient(uri, {
+            serverApi: {
+                version: ServerApiVersion.v1,
+                strict: true,
+                deprecationErrors: true,
+            }
+        });
     }
+
     if (!dbConnectionPromise) {
         dbConnectionPromise = (async () => {
             try {
