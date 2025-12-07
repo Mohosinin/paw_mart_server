@@ -14,5 +14,5 @@ PawMart is a community-driven platform where pet owners, breeders, and shops can
 
 ## Tech Stack
 - **Frontend**: React, Tailwind CSS, DaisyUI, Framer Motion
-- **Backend**: Express.js, MongoDB, JWT
+- **Backend**: Express.js, MongoDB, 
 - **Authentication**: Firebase
