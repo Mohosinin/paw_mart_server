@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -16,174 +15,177 @@ app.use(cors({
     ],
     credentials: true
 }));
-app.options('*', cors());
 app.use(express.json());
 
-// MongoDB Configuration
 const uri = process.env.DB_URI;
 
-// Database State
-let client = null;
-let db;
-let listingsCollection;
-let ordersCollection;
-let usersCollection;
-let dbConnectionPromise = null;
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
 
-// Connection Helper
-async function connectDB() {
-    // Lazy Initialize Client
-    if (!client) {
-        if (!uri) {
-            throw new Error("DB_URI is undefined in environment variables.");
+async function run() {
+  try {
+    // Connect the client to the server	(optional starting in v4.7)
+    // await client.connect();
+
+    const db = client.db('pawmartDB');
+    const listingsCollection = db.collection('listings');
+    const ordersCollection = db.collection('orders');
+    const usersCollection = db.collection('users');
+
+    // ------------------------------------
+    // Listings Routes
+    // ------------------------------------
+    app.get('/listings', async (req, res) => {
+        const limit = parseInt(req.query.limit) || 0;
+        let query = {};
+        if (req.query.category) {
+            query = { category: req.query.category };
         }
-        client = new MongoClient(uri, {
-            serverApi: {
-                version: ServerApiVersion.v1,
-                strict: true,
-                deprecationErrors: true,
-            }
-        });
-    }
+        const result = await listingsCollection.find(query).sort({ _id: -1 }).limit(limit).toArray();
+        res.send(result);
+    });
 
-    if (!dbConnectionPromise) {
-        dbConnectionPromise = (async () => {
-            try {
-                if (db) return db; // already connected
-                await client.connect();
-                db = client.db('pawmartDB');
-                listingsCollection = db.collection('listings');
-                ordersCollection = db.collection('orders');
-                usersCollection = db.collection('users');
-                console.log("Successfully connected to MongoDB!");
-                return db;
-            } catch (error) {
-                console.error("MongoDB connection error:", error);
-                dbConnectionPromise = null; // Reset on failure
-                throw error;
+    app.get('/listings/:id', async (req, res) => {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).send({ error: "Invalid ID format" });
+        }
+        const query = { _id: new ObjectId(id) };
+        const result = await listingsCollection.findOne(query);
+        res.send(result);
+    });
+
+    app.post('/listings', async (req, res) => {
+        const listing = req.body;
+        const result = await listingsCollection.insertOne(listing);
+        res.send(result);
+    });
+
+    app.get('/my-listings', async (req, res) => {
+        let query = {};
+        if (req.query.email) {
+            query = { email: req.query.email };
+        }
+        const result = await listingsCollection.find(query).toArray();
+        res.send(result);
+    });
+
+    app.delete('/listings/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await listingsCollection.deleteOne(query);
+        res.send(result);
+    });
+
+    app.put('/listings/:id', async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const options = { upsert: true };
+        const updatedListing = req.body;
+        
+        const listing = {
+            $set: {
+                name: updatedListing.name,
+                category: updatedListing.category,
+                price: updatedListing.price,
+                location: updatedListing.location,
+                description: updatedListing.description,
+                image: updatedListing.image,
+                date: updatedListing.date
             }
-        })();
-    }
-    return dbConnectionPromise;
+        };
+        const result = await listingsCollection.updateOne(filter, listing, options);
+        res.send(result);
+    });
+
+    // ------------------------------------
+    // Orders Routes
+    // ------------------------------------
+    app.post('/orders', async (req, res) => {
+        const order = req.body;
+        const result = await ordersCollection.insertOne(order);
+        res.send(result);
+    });
+
+    app.get('/my-orders', async (req, res) => {
+        let query = {};
+        if (req.query.email) {
+            query = { email: req.query.email };
+        }
+        const result = await ordersCollection.find(query).toArray();
+        res.send(result);
+    });
+
+    app.delete('/orders/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await ordersCollection.deleteOne(query);
+        res.send(result);
+    });
+
+    // ------------------------------------
+    // Users Routes (From Snippet)
+    // ------------------------------------
+    app.get('/users', async (req, res) => {
+        const cursor = usersCollection.find();
+        const result = await cursor.toArray();
+        res.send(result);
+    });
+
+    app.get('/users/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.findOne(query);
+        res.send(result);
+    });
+
+    app.post('/users', async (req, res) => {
+        const newUser = req.body;
+        const result = await usersCollection.insertOne(newUser);
+        res.send(result);
+    });
+
+    app.patch('/users/:id', async (req, res) => {
+        const id = req.params.id;
+        const updatedUser = req.body;
+        const query = { _id: new ObjectId(id) };
+        const update = {
+            $set: {
+                name: updatedUser.name,
+                email: updatedUser.email
+            }
+        };
+        const result = await usersCollection.updateOne(query, update);
+        res.send(result);
+    });
+
+    app.delete('/users/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.deleteOne(query);
+        res.send(result);
+    });
+
+    // Send a ping to confirm a successful connection
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+  } finally {
+    // Ensures that the client will close when you finish/error
+  }
 }
+run().catch(console.dir);
 
-// Route Wrapper for Safe Execution
-const runSafe = (handler) => async (req, res, next) => {
-    try {
-        await connectDB();
-        await handler(req, res, next);
-    } catch (error) {
-        console.error(`Error in ${req.method} ${req.path}:`, error);
-        res.status(500).send({ 
-            error: 'Internal Server Error', 
-            message: error.message 
-        });
-    }
-};
-
-// =======================
-//       Listings
-// =======================
-
-app.get('/listings', runSafe(async (req, res) => {
-    const limit = parseInt(req.query.limit) || 0;
-    let query = {};
-    if (req.query.category) {
-        query = { category: req.query.category };
-    }
-    const result = await listingsCollection.find(query).sort({ _id: -1 }).limit(limit).toArray();
-    res.send(result);
-}));
-
-app.get('/listings/:id', runSafe(async (req, res) => {
-    const id = req.params.id;
-    if (!ObjectId.isValid(id)) {
-        return res.status(400).send({ error: "Invalid ID format" });
-    }
-    const query = { _id: new ObjectId(id) };
-    const result = await listingsCollection.findOne(query);
-    res.send(result);
-}));
-
-app.post('/listings', runSafe(async (req, res) => {
-    const listing = req.body;
-    // Basic validation could go here
-    const result = await listingsCollection.insertOne(listing);
-    res.send(result);
-}));
-
-app.get('/my-listings', runSafe(async (req, res) => {
-    let query = {};
-    if (req.query.email) {
-        query = { email: req.query.email };
-    }
-    const result = await listingsCollection.find(query).toArray();
-    res.send(result);
-}));
-
-app.delete('/listings/:id', runSafe(async (req, res) => {
-    const id = req.params.id;
-    if (!ObjectId.isValid(id)) return res.status(400).send({ error: "Invalid ID" });
-    const query = { _id: new ObjectId(id) };
-    const result = await listingsCollection.deleteOne(query);
-    res.send(result);
-}));
-
-app.put('/listings/:id', runSafe(async (req, res) => {
-    const id = req.params.id;
-    if (!ObjectId.isValid(id)) return res.status(400).send({ error: "Invalid ID" });
-    
-    const filter = { _id: new ObjectId(id) };
-    const options = { upsert: true };
-    const updatedListing = req.body;
-    
-    // Construct strict update object to prevent unwanted field injection
-    const listing = {
-        $set: {
-            name: updatedListing.name,
-            category: updatedListing.category,
-            price: updatedListing.price,
-            location: updatedListing.location,
-            description: updatedListing.description,
-            image: updatedListing.image,
-            date: updatedListing.date
-        }
-    };
-    const result = await listingsCollection.updateOne(filter, listing, options);
-    res.send(result);
-}));
-
-//        Orders
-
-app.post('/orders', runSafe(async (req, res) => {
-    const order = req.body;
-    const result = await ordersCollection.insertOne(order);
-    res.send(result);
-}));
-
-app.get('/my-orders', runSafe(async (req, res) => {
-    let query = {};
-    if (req.query.email) {
-        query = { email: req.query.email };
-    }
-    const result = await ordersCollection.find(query).toArray();
-    res.send(result);
-}));
-
-app.delete('/orders/:id', runSafe(async (req, res) => {
-    const id = req.params.id;
-    if (!ObjectId.isValid(id)) return res.status(400).send({ error: "Invalid ID" });
-    const query = { _id: new ObjectId(id) };
-    const result = await ordersCollection.deleteOne(query);
-    res.send(result);
-}));
-
-// Base Route
 app.get('/', (req, res) => {
     res.send('PawMart Server is running');
 });
 
-// Start Server
 if (process.env.VERCEL) {
     module.exports = app;
 } else {
