@@ -8,10 +8,13 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173',
+    origin: [
+        'http://localhost:5173',
         'http://localhost:5174',
+        'https://paw-mart-client-beta.vercel.app',
         'https://paw-mart-client-ugad.vercel.app',
-        'https://paw-mart-client-ugad-git-main-yourusername.vercel.app'],// Adjust for production
+        'https://paw-mart-client-ugad-git-main-yourusername.vercel.app'
+    ],
     credentials: true
 }));
 app.use(express.json());
