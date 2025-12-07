@@ -30,18 +30,29 @@ const client = new MongoClient(uri, {
   }
 });
 
-async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    
-    const db = client.db('pawmartDB');
-    const listingsCollection = db.collection('listings');
-    const ordersCollection = db.collection('orders');
-    const usersCollection = db.collection('users'); // Optional, for storing user roles/extra info if needed
+// Database collections
+let db, listingsCollection, ordersCollection, usersCollection;
 
-    // Listings APIs
-    app.get('/listings', async (req, res) => {
+// Connect to MongoDB
+async function connectDB() {
+  try {
+    await client.connect();
+    db = client.db('pawmartDB');
+    listingsCollection = db.collection('listings');
+    ordersCollection = db.collection('orders');
+    usersCollection = db.collection('users');
+    console.log("Successfully connected to MongoDB!");
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+  }
+}
+
+// Initialize DB connection
+connectDB();
+
+// Listings APIs
+app.get('/listings', async (req, res) => {
+    try {
         const limit = parseInt(req.query.limit) || 0;
         let query = {};
         if (req.query.category) {
@@ -49,39 +60,58 @@ async function run() {
         }
         const result = await listingsCollection.find(query).sort({ _id: -1 }).limit(limit).toArray();
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch listings', message: error.message });
+    }
+});
 
-    app.get('/listings/:id', async (req, res) => {
+app.get('/listings/:id', async (req, res) => {
+    try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const result = await listingsCollection.findOne(query);
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch listing', message: error.message });
+    }
+});
 
-    app.post('/listings', async (req, res) => {
+app.post('/listings', async (req, res) => {
+    try {
         const listing = req.body;
         const result = await listingsCollection.insertOne(listing);
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to create listing', message: error.message });
+    }
+});
 
-    app.get('/my-listings', async (req, res) => {
-        // console.log(req.query.email);
+app.get('/my-listings', async (req, res) => {
+    try {
         let query = {};
         if (req.query.email) {
             query = { email: req.query.email };
         }
         const result = await listingsCollection.find(query).toArray();
         res.send(result);
-    });
-    
-    app.delete('/listings/:id', async (req, res) => {
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch listings', message: error.message });
+    }
+});
+
+app.delete('/listings/:id', async (req, res) => {
+    try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const result = await listingsCollection.deleteOne(query);
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to delete listing', message: error.message });
+    }
+});
 
-    app.put('/listings/:id', async (req, res) => {
+app.put('/listings/:id', async (req, res) => {
+    try {
         const id = req.params.id;
         const filter = { _id: new ObjectId(id) };
         const options = { upsert: true };
@@ -99,47 +129,55 @@ async function run() {
         }
         const result = await listingsCollection.updateOne(filter, listing, options);
         res.send(result);
-    })
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to update listing', message: error.message });
+    }
+});
 
-
-    // Orders APIs
-    app.post('/orders', async (req, res) => {
+// Orders APIs
+app.post('/orders', async (req, res) => {
+    try {
         const order = req.body;
         const result = await ordersCollection.insertOne(order);
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to create order', message: error.message });
+    }
+});
 
-    app.get('/my-orders', async (req, res) => {
+app.get('/my-orders', async (req, res) => {
+    try {
         let query = {};
         if (req.query.email) {
             query = { email: req.query.email };
         }
         const result = await ordersCollection.find(query).toArray();
         res.send(result);
-    });
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch orders', message: error.message });
+    }
+});
 
-    app.delete('/orders/:id', async (req, res) => {
+app.delete('/orders/:id', async (req, res) => {
+    try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
         const result = await ordersCollection.deleteOne(query);
         res.send(result);
-    });
-
-
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
-}
-run().catch(console.dir);
+    } catch (error) {
+        res.status(500).send({ error: 'Failed to delete order', message: error.message });
+    }
+});
 
 app.get('/', (req, res) => {
     res.send('PawMart Server is running');
 });
 
-app.listen(port, () => {
-    console.log(`PawMart Server is running on port ${port}`);
-});
+// For Vercel serverless deployment
+if (process.env.VERCEL) {
+    module.exports = app;
+} else {
+    app.listen(port, () => {
+        console.log(`PawMart Server is running on port ${port}`);
+    });
+}
