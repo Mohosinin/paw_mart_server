@@ -13,7 +13,7 @@
 
 ## 🌐 Frontend Website
 
-**� [https://paw-mart-client-ugad.vercel.app](https://paw-mart-client-ugad.vercel.app)**
+**� [https://paw-mart-client-beta.vercel.app](https://paw-mart-client-beta.vercel.app)**
 
 ---
 
