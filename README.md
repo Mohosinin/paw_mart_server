@@ -70,7 +70,7 @@ npm start
 
 ## � Related Repository
 
-- **Frontend**: [paw_mart_client](https://github.com/mohosinan/paw_mart_client)
+- **Frontend**: [paw_mart_client](https://github.com/Mohosinin/paw_mart_client)
 
 ---
 
